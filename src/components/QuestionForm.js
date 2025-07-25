@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 function QuestionForm(props) {
   const [formData, setFormData] = useState({
@@ -9,6 +9,14 @@ function QuestionForm(props) {
     answer4: "",
     correctIndex: 0,
   });
+  
+  const isMountedRef = useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   function handleChange(event) {
     setFormData({
@@ -19,7 +27,40 @@ function QuestionForm(props) {
 
   function handleSubmit(event) {
     event.preventDefault();
-    console.log(formData);
+    
+    // Format the data for the API
+    const questionData = {
+      prompt: formData.prompt,
+      answers: [formData.answer1, formData.answer2, formData.answer3, formData.answer4],
+      correctIndex: parseInt(formData.correctIndex),
+    };
+
+    // Post to the API
+    fetch("http://localhost:4000/questions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(questionData),
+    })
+      .then((r) => r.json())
+      .then((newQuestion) => {
+        props.onAddQuestion(newQuestion);
+        // Reset form only if component is still mounted
+        if (isMountedRef.current) {
+          setFormData({
+            prompt: "",
+            answer1: "",
+            answer2: "",
+            answer3: "",
+            answer4: "",
+            correctIndex: 0,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Error adding question:', error);
+      });
   }
 
   return (
